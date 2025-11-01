@@ -4,7 +4,7 @@ using UnityEngine;
 using Random = UnityEngine.Random;
 
 [ExecuteAlways] // temp
-public class Attacker : MonoBehaviour
+public class NormalSword : MonoBehaviour
 {
     [Header("Editor Preview")]
     public bool autoAimInEditor = true;
@@ -16,6 +16,7 @@ public class Attacker : MonoBehaviour
     public Vector3 planeNormal = Vector3.up;
     [Range(0f, 360f)] public float arcLength = 150f;
     public float duration = .35f;
+    public float MIN_DURATION = .001f;
     public AnimationCurve ease = AnimationCurve.EaseInOut(0,0,1,1);
     public float variationOffset = 45f;
     private float swingVariation = 0f; // Between -variationOffset and +variationOffset
@@ -27,47 +28,15 @@ public class Attacker : MonoBehaviour
 
     private void Update()
     {
-        if (!autoAimInEditor) return;
-        Reorient();
-    }
-
-    void Start()
-    {
-        SetAttackFunction();
-    }
-    
-    void OnValidate()
-    {
-        // Runs in editor when weaponType changes
-        SetAttackFunction();
-    }
-    
-    private void SetAttackFunction()
-    {
-        switch (weaponType.ToLower())
+        if (autoAimInEditor)
         {
-            case "katana":
-                attackFunc = Swing;
-                break;
-            // future weapon types:
-            // case "spear": attackFunc = SpearAttack; break;
-            // case "axe": attackFunc = AxeAttack; break;
-            default:
-                attackFunc = DefaultAttack;
-                break;
+            Reorient();
         }
-    }
-    
-    public void Attack()
-    {
-        attackFunc?.Invoke();
-    }
-    
-    private void DefaultAttack()
-    {
-        Debug.LogWarning($"{name} has no valid attack for weapon type '{weaponType}'.");
-        // Using Swing for default
-        Swing();
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            Swing();
+        }
     }
     
     private (Vector3 normal, Vector3 targetDir) Reorient()
@@ -97,13 +66,12 @@ public class Attacker : MonoBehaviour
         float t = 0f;
         while (t < 1f)
         {
-            t += Time.deltaTime / Mathf.Max(0.0001f, duration);
+            t += Time.deltaTime / Mathf.Max(MIN_DURATION, duration);
             float k = ease.Evaluate(Mathf.Clamp01(t));
             transform.rotation = Quaternion.Slerp(start, end, k);
             yield return null;
         }
-        // transform.rotation = end;
-        transform.rotation = start;
+        transform.rotation = end;
     }
     
     public void Swing()
@@ -121,14 +89,50 @@ public class Attacker : MonoBehaviour
         Vector3 variedSwingAxis = offsetRotation * baseSwingAxis;
         
         // Debug
-        DrawSwingPlane(variedSwingAxis, targetDirection);
+        // DrawSwingPlane(variedSwingAxis, targetDirection);
         
         // Swing from current rotation
-        Quaternion start = PlanarRotation(variedSwingAxis, normal) * Quaternion.Euler(0f, 0f, -90f);
+        Quaternion swordPositioning = (variedSwingAxis.x < 0f) ? Quaternion.Euler(180f, 0f, -90f) : Quaternion.Euler(0f, 0f, -90f);
+        Quaternion start = PlanarRotation(variedSwingAxis, normal) * swordPositioning;
         Quaternion end = Quaternion.AngleAxis(arcLength, variedSwingAxis) * start;
 
         StopAllCoroutines();
         StartCoroutine(SwingArc(start, end));
+    }
+
+    public void Swing(float duration)
+    {
+        this.duration = Mathf.Max(MIN_DURATION, duration);
+        Swing();
+    }
+
+    public void TestFullSwingVariations(float step = 5f)
+    {
+        if (!target)
+        {
+            Debug.LogWarning("No target assigned.");
+            return;
+        }
+    
+        var (normal, targetDirection) = Reorient();
+        Vector3 baseSwingAxis = Vector3.Cross(normal, targetDirection).normalized;
+    
+        var planeList = new System.Collections.Generic.List<PlaneBuilder>();
+    
+        for (float angle = 0f; angle < 360f; angle += step)
+        {
+            Quaternion rot = Quaternion.AngleAxis(angle, targetDirection);
+            Debug.Log($"Angle step: {angle} / 360");
+            var variedSwingAxis = rot * baseSwingAxis;
+            planeList.Add(new PlaneBuilder(variedSwingAxis));
+        }
+    
+        var planes = planeList.ToArray();
+        var set = new PlaneSet(normal, planes);
+        string path = "Assets/planes.bin";
+        PlaneSet.Save(path, set);
+    
+        Debug.Log($"Saved {planes.Length} plane variations to {path} with normal {normal}.");
     }
     
     private GameObject debugPlane;
@@ -136,21 +140,20 @@ public class Attacker : MonoBehaviour
     {
         // Clean up old plane
         if (debugPlane) Destroy(debugPlane);
-    
+
         debugPlane = GameObject.CreatePrimitive(PrimitiveType.Cube);
         debugPlane.name = "SwingPlane";
-    
+
         debugPlane.transform.localScale = new Vector3(1f, 1f, 0.001f);
         debugPlane.transform.position = transform.position;
-    
+
         // Orient the plane - swing axis is the plane's normal
         // Vector3 planeRight = targetDir;
         Vector3 planeUp = Vector3.Cross(swingAxis, targetDir).normalized;
         debugPlane.transform.rotation = Quaternion.LookRotation(swingAxis, planeUp);
-    
+
         // Make semi-transparent
         var renderer = debugPlane.GetComponent<Renderer>();
         renderer.material.color = new Color(0, 1, 0, 0.15f); // Green, semi-transparent
     }
-
 }

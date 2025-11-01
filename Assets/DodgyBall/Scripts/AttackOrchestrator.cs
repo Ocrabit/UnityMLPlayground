@@ -15,11 +15,11 @@ public class AttackOrchestrator : MonoBehaviour
     [Header("Order")]
     public bool randomizeOrderEachCycle = true;
     
-    private readonly List<Attacker> _attackers = new();
+    private readonly List<AttackHandler> _attackers = new();
     private readonly List<int> _order = new();
     private int _orderIndex = 0;
     
-    private readonly Dictionary<Attacker, float> _busyUntil = new();  // for tracking busyness
+    private readonly Dictionary<AttackHandler, float> _busyUntil = new();  // for tracking busyness
     private float _nextFireAt;
     
     void OnEnable()
@@ -51,8 +51,7 @@ public class AttackOrchestrator : MonoBehaviour
         
         // set per-attack duration, then attack
         float useDuration = Random.Range(durationMin, durationMax);
-        attacker.duration = useDuration;
-        attacker.Attack();
+        attacker.Attack(useDuration);
 
         // mark this attacker as busy
         _busyUntil[attacker] = Time.time + useDuration;
@@ -66,7 +65,7 @@ public class AttackOrchestrator : MonoBehaviour
         _attackers.Clear();
         foreach (Transform t in transform)
         {
-            var a = t.GetComponent<Attacker>();
+            var a = t.GetComponent<AttackHandler>();
             if (a != null) _attackers.Add(a);
         }
         // compress order to available count
@@ -75,7 +74,7 @@ public class AttackOrchestrator : MonoBehaviour
         
         // sync busy map
         var now = Time.time;
-        var keysToRemove = new List<Attacker>();
+        var keysToRemove = new List<AttackHandler>();
         foreach (var kv in _busyUntil)
         {
             if (!_attackers.Contains(kv.Key)) keysToRemove.Add(kv.Key);
@@ -117,7 +116,7 @@ public class AttackOrchestrator : MonoBehaviour
         return float.IsPositiveInfinity(min) ? Time.time : Mathf.Min(min, Time.time) == Time.time ? Time.time : min;
     }
     
-    private Attacker NextAvailableAttacker()
+    private AttackHandler NextAvailableAttacker()
     {
         if (_attackers.Count == 0) return null;
 
