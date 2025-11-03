@@ -21,6 +21,10 @@ namespace DodgyBall.Scripts
         private Quaternion baseRotation = Quaternion.identity;
         private SwingKeyframeSet loadedKeyframes;
         
+        private static readonly Quaternion SwordOffsetDown = Quaternion.Euler(0f, 180f, 90f);
+        private static readonly Quaternion SwordOffsetUp = Quaternion.Euler(0f, 0f, -90f);
+
+        
         void Start()
         {
             // Precomp orientation
@@ -41,6 +45,11 @@ namespace DodgyBall.Scripts
             if (Input.GetKeyDown(KeyCode.R))
             {
                 Orient();
+            }
+
+            if (Input.GetKeyDown(KeyCode.T))
+            {
+                Swing(target);
             }
         }
     
@@ -85,6 +94,24 @@ namespace DodgyBall.Scripts
             
             // SwordHelpers.DrawSwingPlane(transform, modifiedAxis,loadedKeyframes.planeNormal);
             // SwordHelpers.DebugStartEndSword(gameObject, transform, start, end);
+            StopAllCoroutines();
+            StartCoroutine(SwingArc(start, end));
+        }
+        
+        public void Swing(Transform target)
+        {
+            SwingKeyframe randomSwingKeyframe = loadedKeyframes.GetRandomSwing();
+            
+            Vector3 normal = planeNormal.sqrMagnitude > 0f ? planeNormal.normalized : Vector3.up;
+            Vector3 direction = target.position - transform.position;
+            baseRotation = Quaternion.LookRotation(direction, normal) * weaponAdjustment;
+            
+            Vector3 worldSwingAxis = baseRotation * randomSwingKeyframe.localSwingAxis;
+            Quaternion swordOffset = randomSwingKeyframe.localSwingAxis.y < 0 ? SwordOffsetDown : SwordOffsetUp;
+            
+            Quaternion start = Quaternion.LookRotation(worldSwingAxis, normal) * weaponAdjustment * swordOffset;
+            Quaternion end = Quaternion.AngleAxis(arcLength, worldSwingAxis) * start;
+    
             StopAllCoroutines();
             StartCoroutine(SwingArc(start, end));
         }

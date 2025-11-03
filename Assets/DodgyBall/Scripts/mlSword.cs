@@ -14,6 +14,9 @@ namespace DodgyBall.Scripts
         private readonly Quaternion weaponAdjustment = Quaternion.Euler(-90, -90, 0);
         private Quaternion baseRotation = Quaternion.identity;
         
+        private static readonly Quaternion SwordOffsetDown = Quaternion.Euler(0f, 180f, 90f);
+        private static readonly Quaternion SwordOffsetUp = Quaternion.Euler(0f, 0f, -90f);
+        
         public void Orient(Transform target)
         {
             Vector3 normal = SwingKeyframeSet.Instance.planeNormal.sqrMagnitude > 0f ? SwingKeyframeSet.Instance.planeNormal.normalized : Vector3.up;
@@ -52,6 +55,24 @@ namespace DodgyBall.Scripts
             // SwordHelpers.DrawSwingPlane(transform, modifiedAxis,SwingKeyframeSet.Instance.planeNormal);
             // SwordHelpers.DebugStartEndSword(gameObject, transform, start, end);
             
+            return StartCoroutine(SwingArc(start, end, duration, onComplete));
+        }
+        
+        public Coroutine Attack(float duration, Transform target, Action onComplete)
+        {
+            Debug.Log("Called target based Attack");
+            SwingKeyframe randomSwingKeyframe = SwingKeyframeSet.GetRandomFromSingleton();
+                
+            Vector3 normal = SwingKeyframeSet.Instance.planeNormal.sqrMagnitude > 0f ? SwingKeyframeSet.Instance.planeNormal.normalized : Vector3.up;
+            Vector3 direction = target.position - transform.position;
+            baseRotation = Quaternion.LookRotation(direction, normal) * weaponAdjustment;
+                
+            Vector3 worldSwingAxis = baseRotation * randomSwingKeyframe.localSwingAxis;
+            Quaternion swordOffset = randomSwingKeyframe.localSwingAxis.y < 0 ? SwordOffsetDown : SwordOffsetUp;
+                
+            Quaternion start = Quaternion.LookRotation(worldSwingAxis, normal) * weaponAdjustment * swordOffset;
+            Quaternion end = Quaternion.AngleAxis(arcLength, worldSwingAxis) * start;
+        
             return StartCoroutine(SwingArc(start, end, duration, onComplete));
         }
         

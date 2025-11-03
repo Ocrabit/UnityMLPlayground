@@ -11,6 +11,7 @@ namespace DodgyBall.Scripts
     public interface IWeapon
     {
         Coroutine Attack(float duration, Action onComplete);
+        Coroutine Attack(float duration, Transform target, Action onComplete);
         Vector3 GetRandomInRangePosition(Transform target);
         void Orient(Transform target);
     }
@@ -34,6 +35,14 @@ namespace DodgyBall.Scripts
         public void Start(float duration, Action onFinished)
         {
             Routine = Weapon.Attack(duration, () =>
+            {
+                Complete();
+                onFinished?.Invoke();
+            });
+        }
+        public void Start(float duration, Transform target, Action onFinished)
+        {
+            Routine = Weapon.Attack(duration, target, () =>
             {
                 Complete();
                 onFinished?.Invoke();
@@ -174,7 +183,7 @@ namespace DodgyBall.Scripts
             //     _active.Remove(handle);
             //     _waiting.Add(handle);
             // });
-            handle.Start(duration, () =>
+            handle.Start(duration, target, () =>
             {
                 _active.Remove(handle);
                 _waiting.Add(handle);
