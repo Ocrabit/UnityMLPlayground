@@ -14,16 +14,16 @@ namespace DodgyBall.Scripts
         private readonly Quaternion weaponAdjustment = Quaternion.Euler(-90, -90, 0);
         private Quaternion baseRotation = Quaternion.identity;
         
-        private static readonly Quaternion SwordOffsetDown = Quaternion.Euler(0f, 180f, 90f);
-        private static readonly Quaternion SwordOffsetUp = Quaternion.Euler(0f, 0f, -90f);
+        private static readonly Quaternion SwordOffsetDown = Quaternion.Euler(0f, 0f, 90f);
+        private static readonly Quaternion SwordOffsetUp = Quaternion.Euler(0f, 180f, -90f);
         
         public void Orient(Transform target)
         {
             Vector3 normal = SwingKeyframeSet.Instance.planeNormal.sqrMagnitude > 0f ? SwingKeyframeSet.Instance.planeNormal.normalized : Vector3.up;
-            Vector3 direction = target.position - transform.position;
+            Vector3 direction = target.localPosition - transform.localPosition;
             
             baseRotation = Quaternion.LookRotation(direction, normal) * weaponAdjustment;
-            transform.rotation = baseRotation;
+            transform.localRotation = baseRotation;
             Debug.Log($"Orient Set for {gameObject.name} with rotation: {baseRotation} | euler {baseRotation.eulerAngles}");
         }
         
@@ -34,10 +34,10 @@ namespace DodgyBall.Scripts
             {
                 t += Time.deltaTime / duration;
                 float k = ease.Evaluate(Mathf.Clamp01(t));
-                transform.rotation = Quaternion.Slerp(start, end, k);
+                transform.localRotation = Quaternion.Slerp(start, end, k);
                 yield return null;
             }
-            transform.rotation = end;
+            transform.localRotation = end;
             onComplete();
         }
         
@@ -64,7 +64,7 @@ namespace DodgyBall.Scripts
             SwingKeyframe randomSwingKeyframe = SwingKeyframeSet.GetRandomFromSingleton();
                 
             Vector3 normal = SwingKeyframeSet.Instance.planeNormal.sqrMagnitude > 0f ? SwingKeyframeSet.Instance.planeNormal.normalized : Vector3.up;
-            Vector3 direction = target.position - transform.position;
+            Vector3 direction = target.localPosition - transform.localPosition;
             baseRotation = Quaternion.LookRotation(direction, normal) * weaponAdjustment;
                 
             Vector3 worldSwingAxis = baseRotation * randomSwingKeyframe.localSwingAxis;
@@ -78,10 +78,10 @@ namespace DodgyBall.Scripts
         
         public Vector3 GetRandomInRangePosition(Transform target)
         {
-            if (!target) return transform.position;
+            if (!target) return transform.localPosition;
 
             float radius = 1f; // 1 for now ig will test to figure out sword length later maybe make it dynamic from scaling if I feel like it
-            return target.position + Random.insideUnitSphere * radius;
+            return target.localPosition + Random.insideUnitSphere * radius;
         }
     }
 }
