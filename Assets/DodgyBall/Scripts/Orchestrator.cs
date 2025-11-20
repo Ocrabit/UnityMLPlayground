@@ -14,6 +14,9 @@ namespace DodgyBall.Scripts
         Coroutine Attack(float duration, Transform target, Action onComplete);
         Vector3 GetRandomInRangePosition(Transform target);
         void Orient(Transform target);
+        bool CannotReach(Vector3 position);
+        void ApproachTarget(Vector3 targetPosition);
+        void StopApproaching();
     }
     
     public sealed class AttackHandle
@@ -66,6 +69,10 @@ namespace DodgyBall.Scripts
             public Transform transform;
         }
 
+        [Header("Attack Options")] 
+        public bool useTeleports = false;
+        public bool disableMovement = false;
+        
         [Header("Agent Stuff (here for now)")] public int totalSteps = 100;
         private int _step = 0;
         
@@ -145,7 +152,7 @@ namespace DodgyBall.Scripts
                 
                 IWeapon iWeapon = initialized.GetComponent<IWeapon>() ?? initialized.GetComponentInChildren<IWeapon>(true);
                 if (iWeapon == null) { Debug.LogError($"Prefab '{prefab.name}' has no component implementing IWeapon."); continue; }
-                initialized.transform.position = iWeapon.GetRandomInRangePosition(target);
+                initialized.transform.localPosition = iWeapon.GetRandomInRangePosition(target);
                 iWeapon.Orient(target);
                 
                 _weapons.Add(new WeaponEntry{ weapon = iWeapon, transform = initialized.transform });
@@ -198,6 +205,10 @@ namespace DodgyBall.Scripts
 
             _intervalTimer += Time.fixedDeltaTime;
 
+            // Handle movement
+            MoveTowardsTarget();
+            
+            // Handle Attacks
             if (_intervalTimer >= _nextInterval)
             {
                 _intervalTimer = 0f;
@@ -224,6 +235,23 @@ namespace DodgyBall.Scripts
             float bucket = Mathf.Floor(progress / shiftStepPercent) * shiftStepPercent;
             float t = (rangeShiftCurve.Evaluate(bucket) + 1f) * 0.5f;
             return Mathf.Lerp(durationMin, durationMax, t);
+        }
+
+        private void MoveTowardsTarget()
+        {
+            if (disableMovement) return;
+
+            var targetPosition = target.localPosition;
+
+            foreach (var handle in _waiting)
+            {
+                if (handle.Weapon.CannotReach(targetPosition))
+                {
+                    handle.Weapon.ApproachTarget(targetPosition);
+                } else {
+                    handle.Weapon.StopApproaching();
+                }
+            }
         }
         
         
