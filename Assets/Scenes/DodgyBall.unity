@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 2254994}
   - component: {fileID: 2254993}
   - component: {fileID: 2254992}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wall (1)
   m_TagString: Wall
   m_Icon: {fileID: 0}
@@ -604,19 +604,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.7071068
+      value: -0.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.7071068
+      value: -0.5
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -624,11 +624,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
+      value: -90
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
       propertyPath: m_Name
@@ -636,7 +636,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -648,6 +648,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1770577637}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1770577641}
   m_SourcePrefab: {fileID: 100100000, guid: 392f3bf824a924e5b9853dbf5b24392f, type: 3}
 --- !u!1 &741343856
 GameObject:
@@ -661,7 +664,7 @@ GameObject:
   - component: {fileID: 741343860}
   - component: {fileID: 741343859}
   - component: {fileID: 741343858}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wall (2)
   m_TagString: Wall
   m_Icon: {fileID: 0}
@@ -779,7 +782,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!135 &868460936
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -887,7 +890,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &925039972
 Transform:
   m_ObjectHideFlags: 0
@@ -1055,7 +1058,7 @@ GameObject:
   - component: {fileID: 1042538568}
   - component: {fileID: 1042538567}
   - component: {fileID: 1042538566}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wall
   m_TagString: Wall
   m_Icon: {fileID: 0}
@@ -1164,7 +1167,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1149802334}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Room
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1204,7 +1207,7 @@ GameObject:
   - component: {fileID: 1253761535}
   - component: {fileID: 1253761534}
   - component: {fileID: 1253761533}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Ceiling
   m_TagString: Wall
   m_Icon: {fileID: 0}
@@ -1316,7 +1319,7 @@ GameObject:
   - component: {fileID: 1530260244}
   - component: {fileID: 1530260243}
   - component: {fileID: 1530260242}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Wall (3)
   m_TagString: Wall
   m_Icon: {fileID: 0}
@@ -1428,7 +1431,7 @@ GameObject:
   - component: {fileID: 1723160930}
   - component: {fileID: 1723160929}
   - component: {fileID: 1723160928}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Floor
   m_TagString: Wall
   m_Icon: {fileID: 0}
@@ -1572,12 +1575,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7998d253c5a274f06ac36e52220bea07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DodgyBall.Scripts.Orchestrator
+  useTeleports: 0
+  disableMovement: 0
   totalSteps: 100
   maxConcurrentSwings: 3
   chanceForConcurrency: 0.25
   intervalMin: 0.25
   intervalMax: 1.96
-  durationMin: 0.28
+  durationMin: 0.8
   durationMax: 1.46
   rangeShiftCurve:
     serializedVersion: 2
@@ -1664,7 +1669,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1770577631}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 89b633b12b19d4136b5170ae07285c38, type: 3}
   m_Name: 
@@ -1698,6 +1703,43 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &1770577641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1770577631}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16251ca84c2643dda430e965074657a0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DodgyBall.Scripts.mlStabbySword
+  ease:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  target: {fileID: 868460939}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

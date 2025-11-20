@@ -70,7 +70,7 @@ namespace DodgyBall.Scripts
         }
 
         [Header("Attack Options")] 
-        public bool useTeleports = false;
+        public bool useTeleports = false; //Unimplemented Would Be Sick Tho
         public bool disableMovement = false;
         
         [Header("Agent Stuff (here for now)")] public int totalSteps = 100;
