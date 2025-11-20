@@ -1,0 +1,19 @@
+[project]
+name = "unitymlagents"
+version = "0.1.0"
+description = "Unity ML Agents local development setup"
+readme = "README.md"
+requires-python = "==3.10.12"
+dependencies = [
+    "mlagents",
+    "mlagents-envs",
+    "torch>=2.1.1,<2.9",
+    "gym==0.26.2",
+    "protobuf==3.20.3",
+    "numpy>=1.23.5",
+    "tensorboard"
+]
+
+[tool.uv.sources]
+mlagents = { path = "/Users/marcocassar/Projects/UnityMLagents/unity-ml-agents-repo/ml-agents", editable = true }
+mlagents-envs = { path = "/Users/marcocassar/Projects/UnityMLagents/unity-ml-agents-repo/ml-agents-envs", editable = true }
