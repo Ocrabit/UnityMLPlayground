@@ -274,5 +274,15 @@ namespace DodgyBall.Scripts
             for (int i = _active.Count - 1; i >= 0; i--)
                 CancelAndReturn(_active[i]);
         }
+
+        public Transform[] GetWeaponTransforms()
+        {
+            Transform[] transforms = new Transform[_weapons.Count];
+            for (int i = 0; i < _weapons.Count; i++)
+            {
+                transforms[i] = _weapons[i].transform;
+            }
+            return transforms;
+        }
     }
 }

@@ -11,8 +11,13 @@ namespace DodgyBall.Scripts
     {
         [Header("Movement")]
         public float forceMultiplier = 10;
-        
+
+        [Header("Weapon Tracking")]
+        public int maxObservedWeapons = 3;
+        public Orchestrator orchestrator;
+
         private Rigidbody _rb;
+        private Transform[] _weaponRefs;
         
         public float[] aliveMilestones = { 1f, 3f, 5f, 10f, 15f};
         private int _currentAliveMilestone = 0;
@@ -22,6 +27,15 @@ namespace DodgyBall.Scripts
         void Start()
         {
             _rb = GetComponent<Rigidbody>();
+            InitializeWeaponRefs();
+        }
+
+        private void InitializeWeaponRefs()
+        {
+            if (orchestrator != null)
+            {
+                _weaponRefs = orchestrator.GetWeaponTransforms();
+            }
         }
         
         public override void OnEpisodeBegin()
@@ -36,13 +50,39 @@ namespace DodgyBall.Scripts
         
         public override void CollectObservations(VectorSensor sensor)
         {
-            // (agent)
+            // (agent) - 6 observations
             sensor.AddObservation(transform.localPosition);
-            sensor.AddObservation(_rb.linearVelocity.x);
-            sensor.AddObservation(_rb.linearVelocity.y);
-            sensor.AddObservation(_rb.linearVelocity.z);
-            
-            // (observed weapons (haven't figured out how I want to do this yet))
+            sensor.AddObservation(_rb.linearVelocity);
+
+            // (weapons) - 6 observations per weapon * maxObservedWeapons
+            if (_weaponRefs != null)
+            {
+                for (int i = 0; i < maxObservedWeapons; i++)
+                {
+                    if (i < _weaponRefs.Length && _weaponRefs[i])
+                    {
+                        // Position (3 values)
+                        sensor.AddObservation(_weaponRefs[i].localPosition);
+                        // Rotation as euler angles (3 values)
+                        sensor.AddObservation(_weaponRefs[i].localRotation.eulerAngles);
+                    }
+                    else
+                    {
+                        // Add zeros if weapon doesn't exist (6 values)
+                        sensor.AddObservation(Vector3.zero); // position
+                        sensor.AddObservation(Vector3.zero); // rotation
+                    }
+                }
+            }
+            else
+            {
+                // No weapon refs, add zeros for all weapon slots
+                for (int i = 0; i < maxObservedWeapons; i++)
+                {
+                    sensor.AddObservation(Vector3.zero); // position
+                    sensor.AddObservation(Vector3.zero); // rotation
+                }
+            }
         }
         
         public override void OnActionReceived(ActionBuffers actionBuffers)
