@@ -128,7 +128,7 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  attackRange: 1
+  attackRange: 2
   approachSpeed: 0.5
   stoppingDistance: 1
   decelerationDistance: 3
