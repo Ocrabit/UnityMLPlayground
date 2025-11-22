@@ -647,17 +647,17 @@ MonoBehaviour:
   maxConcurrentSwings: 3
   chanceForConcurrency: 0.25
   intervalMin: 0.25
-  intervalMax: 1.96
-  durationMin: 0.8
-  durationMax: 1.46
+  intervalMax: 1.5
+  durationMin: 1
+  durationMax: 1.8
   rangeShiftCurve:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: -1
+      value: 0
       inSlope: 0
-      outSlope: 2
+      outSlope: 0
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
@@ -666,7 +666,7 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 2
-      outSlope: 0
+      outSlope: 2
       tangentMode: 0
       weightedMode: 0
       inWeight: 0

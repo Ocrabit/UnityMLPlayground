@@ -46,22 +46,39 @@ namespace DodgyBall.Scripts
             // Debug.Log($"Orient Set for {gameObject.name} with rotation: {baseRotation} | euler {baseRotation.eulerAngles}");
         }
         
-        IEnumerator SwingArc(Quaternion start, Quaternion end, float duration, float arcDegrees, Vector3 rotationAxis, Action onComplete)
+        IEnumerator SwingArc(Quaternion start, float duration, float arcDegrees, Vector3 rotationAxis, Action onComplete)
         {
+            Quaternion InitialRotation = transform.localRotation;
+            // slerp to attack start position for 5th of duration
+            float initialMove = 0f;
+            while (initialMove < 1f)
+            {
+                initialMove += Time.deltaTime / (duration / 5);
+                float k0 = Mathf.Clamp01(initialMove);
+                transform.localRotation = Quaternion.Slerp(InitialRotation, start, k0);
+                yield return null;
+            }
+            
+            // finish attack with remaining 4/5ths of duration
             float t = 0f;
             while (t < 1f)
             {
-                t += Time.deltaTime / duration;
+                t += Time.deltaTime / (4*duration/5);
                 float k = ease.Evaluate(Mathf.Clamp01(t));
 
                 // Directly interpolate the rotation angle for full control
                 float currentAngle = k * arcDegrees;
                 transform.localRotation = Quaternion.AngleAxis(currentAngle, rotationAxis) * start;
-
+                
                 yield return null;
             }
             transform.localRotation = Quaternion.AngleAxis(arcDegrees, rotationAxis) * start;
-            onComplete();
+
+            // Ensure velocity is zero
+            _rb.linearVelocity = Vector3.zero;
+            _rb.angularVelocity = Vector3.zero;
+
+            onComplete?.Invoke();
         }
         
         public Coroutine Attack(float duration, Action onComplete)
@@ -77,12 +94,12 @@ namespace DodgyBall.Scripts
 
             Quaternion start = Quaternion.LookRotation(modifiedAxis, SwingKeyframeSet.Instance.planeNormal)
                                 * weaponAdjustment * swordPositioning;
-            Quaternion end = Quaternion.AngleAxis(arcLength, modifiedAxis) * start;
+            // Quaternion end = Quaternion.AngleAxis(arcLength, modifiedAxis) * start;
 
             // SwordHelpers.DrawSwingPlane(transform, modifiedAxis,SwingKeyframeSet.Instance.planeNormal);
             // SwordHelpers.DebugStartEndSword(gameObject, transform, start, end);
 
-            return StartCoroutine(SwingArc(start, end, duration, arcLength, modifiedAxis, onComplete));
+            return StartCoroutine(SwingArc(start, duration, arcLength, modifiedAxis, onComplete));
         }
         
         public Coroutine Attack(float duration, Transform target, Action onComplete)
@@ -90,20 +107,34 @@ namespace DodgyBall.Scripts
             // Set zero
             _rb.linearVelocity = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
-
+            
+            // Sample Random Swing Plane
             SwingKeyframe randomSwingKeyframe = SwingKeyframeSet.GetRandomFromSingleton();
 
+            // Calculate direction and rotation to target
             Vector3 normal = SwingKeyframeSet.Instance.planeNormal.sqrMagnitude > 0f ? SwingKeyframeSet.Instance.planeNormal.normalized : Vector3.up;
             Vector3 direction = target.localPosition - transform.localPosition;
             baseRotation = Quaternion.LookRotation(direction, normal) * weaponAdjustment;
-
-            Vector3 worldSwingAxis = baseRotation * randomSwingKeyframe.localSwingAxis;
+            
+            // Orient Swing Axis and position approach
+            Vector3 swingAxis = baseRotation * randomSwingKeyframe.localSwingAxis;
             Quaternion swordOffset = randomSwingKeyframe.localSwingAxis.y < 0 ? SwordOffsetDown : SwordOffsetUp;
 
-            Quaternion start = Quaternion.LookRotation(worldSwingAxis, normal) * weaponAdjustment * swordOffset;
-            Quaternion end = Quaternion.AngleAxis(arcLength, worldSwingAxis) * start;
-
-            return StartCoroutine(SwingArc(start, end, duration, arcLength, worldSwingAxis, onComplete));
+            // Project direction and orient blade to be on swingAxis
+            Vector3 projected = Vector3.ProjectOnPlane(direction, swingAxis).normalized;
+            Quaternion neutral = Quaternion.LookRotation(swingAxis, normal) * weaponAdjustment * swordOffset;
+            
+            // Calculate offset needed to split arc
+            float offset =  Vector3.SignedAngle(neutral * Vector3.forward, projected, swingAxis) - arcLength / 2f;
+            // Debug.Log($"Adjusting by: {offset}");
+            
+            Quaternion start = Quaternion.AngleAxis(offset, swingAxis) * neutral;
+            
+            // Debug Step
+            float finalOffset = Vector3.SignedAngle(start * Vector3.forward, projected, swingAxis);
+            Debug.Log($"Final Offset from mid: {finalOffset} (expected ±{arcLength/2f})");
+            
+            return StartCoroutine(SwingArc(start, duration, arcLength, swingAxis, onComplete));
         }
         
         public Vector3 GetRandomInRangePosition(Transform target)
@@ -160,5 +191,21 @@ namespace DodgyBall.Scripts
             _rb.linearVelocity = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
         }
+
+        private GameObject _debugTargetSphere;
+
+        void TargetApparition(Vector3 targetPosition, Vector3 targetScale)
+        {
+            if (_debugTargetSphere)
+            {
+                Destroy(_debugTargetSphere);
+            }
+
+            _debugTargetSphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            _debugTargetSphere.transform.position = targetPosition;
+            _debugTargetSphere.transform.localScale = targetScale;
+            _debugTargetSphere.name = "Target Apparition";
+        }
+        
     }
 }
