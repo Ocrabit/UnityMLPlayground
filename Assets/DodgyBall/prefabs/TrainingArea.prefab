@@ -645,6 +645,7 @@ MonoBehaviour:
   disableMovement: 0
   maxConcurrentSwings: 3
   chanceForConcurrency: 0.25
+  chanceForPrediction: 0.4
   concurrencyCheckInterval: 0.2
   intervalMin: 0.25
   intervalMax: 1.5
@@ -993,6 +994,7 @@ MonoBehaviour:
   - 1
   - 3
   - 5
+  - 7
   - 10
   - 15
   Reward: 0
