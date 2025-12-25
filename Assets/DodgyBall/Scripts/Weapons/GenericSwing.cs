@@ -86,7 +86,7 @@ namespace DodgyBall.Scripts.Weapons
             return StartCoroutine(Swing(duration, targetPosition, callback));
         }
 
-        public float GetImpactTime(float duration)
+        public float GetImpactTime(float duration, Vector3 targetPosition)
         {
             return (float) (0.037f / (duration * .75)) + 0.488f;
         }

@@ -1,6 +1,8 @@
+using System;
 using UnityEngine;
 using UnityEditor;
 using DodgyBall.Scripts.Utilities;
+using Random = UnityEngine.Random;
 
 namespace DodgyBall.Scripts.Editor
 {
@@ -17,6 +19,7 @@ namespace DodgyBall.Scripts.Editor
         // Visualization Settings
         private bool showPoints = true;
         private bool showTangents = false;
+        private float curveScale = 1f;
 
         private int tabIndex = 0;
         private string[] tabs = { "Generate", "Visualize" };
@@ -79,6 +82,7 @@ namespace DodgyBall.Scripts.Editor
             
             showPoints = EditorGUILayout.Toggle("Show Points", showPoints);
             showTangents = EditorGUILayout.Toggle("Show Tangents", showTangents);
+            curveScale = EditorGUILayout.FloatField("Scale", curveScale);
             selectedCurveIndex = EditorGUILayout.IntSlider("Curve Index", selectedCurveIndex, 0, library.curves.Length - 1);
 
             BezierCurve curve = library.curves[selectedCurveIndex];
@@ -104,29 +108,29 @@ namespace DodgyBall.Scripts.Editor
 
             if (curve.sampledPoints == null || curve.sampledPoints.Length == 0)
                 return;
-
+            
             Handles.color = Color.cyan;
 
             // Draw the curve itself
             for (int i = 0; i < curve.sampledPoints.Length - 1; i++)
             {
-                Handles.DrawLine(curve.sampledPoints[i], curve.sampledPoints[i + 1], 1.5f);
+                Handles.DrawLine(curve.sampledPoints[i] * curveScale, curve.sampledPoints[i + 1] * curveScale, 1.5f);
             }
 
             // Then let's place some points
             if (showPoints)
             {
                 Handles.color = Color.green; // start point
-                Handles.SphereHandleCap(0, curve.sampledPoints[0], Quaternion.identity, 0.025f, EventType.Repaint);
-                Handles.Label(curve.sampledPoints[0], "Start");
+                Handles.SphereHandleCap(0, curve.sampledPoints[0] * curveScale, Quaternion.identity, 0.025f, EventType.Repaint);
+                Handles.Label(curve.sampledPoints[0] * curveScale, "Start");
 
                 Handles.color = Color.red; // end point
-                Handles.SphereHandleCap(0, curve.sampledPoints[^1], Quaternion.identity, 0.025f, EventType.Repaint);
-                Handles.Label(curve.sampledPoints[^1], "End");
+                Handles.SphereHandleCap(0, curve.sampledPoints[^1] * curveScale, Quaternion.identity, 0.025f, EventType.Repaint);
+                Handles.Label(curve.sampledPoints[^1] * curveScale, "End");
 
                 Handles.color = Color.yellow; // contact point
-                Handles.SphereHandleCap(0, curve.contactPoint, Quaternion.identity, 0.05f, EventType.Repaint);
-                Handles.Label(curve.contactPoint, "Contact");
+                Handles.SphereHandleCap(0, curve.contactPoint * curveScale, Quaternion.identity, 0.05f, EventType.Repaint);
+                Handles.Label(curve.contactPoint * curveScale, "Contact");
             }
 
             // Draw tangents at intervals
@@ -137,7 +141,7 @@ namespace DodgyBall.Scripts.Editor
                 for (int i = 0; i < curve.sampledTangents.Length; i += tangentInterval)
                 {
                     Vector3 tangentEnd = curve.sampledPoints[i] + curve.sampledTangents[i] * 0.1f;
-                    Handles.DrawLine(curve.sampledPoints[i], tangentEnd, 1.5f);
+                    Handles.DrawLine(curve.sampledPoints[i] * curveScale, tangentEnd * curveScale, 1.5f);
                 }
             }
         }
@@ -170,17 +174,37 @@ namespace DodgyBall.Scripts.Editor
 
             float contactAt = Random.Range(0.35f, 0.65f);
             Vector3 contactPoint = Bezier.Evaluate(contactAt, controlPoints);
+
+            // Arc Lengths | Needed for contactTimeRatio
+            float totalArcLength = Bezier.ArcLength(0f, 1f, 1e-5f, 30, controlPoints);
+            float arcLengthToContact = Bezier.ArcLength(0f, contactAt, 1e-5f, 30, controlPoints);
+            float contactTimeRatio = arcLengthToContact / totalArcLength;
+
+            // Debug.Log($"Gen Curve: contactAt={contactAt:F3} | totalArc={totalArcLength:F6} | arcToContact={arcLengthToContact:F6} | ratio={contactTimeRatio:F6}");
+
             float distanceToContact = (contactPoint - controlPoints[0]).magnitude;
 
             Vector3[] sampledPoints = Bezier.SamplePoints(numSamples, controlPoints);
             Vector3[] sampledTangents = Bezier.SampleTangents(numSamples, controlPoints);
 
+            float[] cumulativeArcLengths = new float[sampledPoints.Length];
+            cumulativeArcLengths[0] = 0f;
+            for (int i = 1; i < sampledPoints.Length; i++)
+            {
+                float segmentLength = Vector3.Distance(sampledPoints[i - 1], sampledPoints[i]);
+                cumulativeArcLengths[i] = cumulativeArcLengths[i - 1] + segmentLength;
+            }
+
             return new BezierCurve
             {
                 sampledPoints = sampledPoints,
                 sampledTangents = sampledTangents,
+                cumulativeArcLengths = cumulativeArcLengths,
                 contactPoint = contactPoint,
-                distanceToContact = distanceToContact
+                distanceToContact = distanceToContact,
+                totalArcLength = totalArcLength,
+                arcLengthToContact = arcLengthToContact,
+                contactTimeRatio = contactTimeRatio
             };
         }
 
@@ -192,9 +216,11 @@ namespace DodgyBall.Scripts.Editor
                 Debug.LogError("No library selected");
                 return;
             }
-            
+
+            library.curves ??= Array.Empty<BezierCurve>(); // create new curve if null
+
             int originalCount = library.curves.Length;
-            System.Array.Resize(ref library.curves, originalCount + numCurvesToGenerate);
+            Array.Resize(ref library.curves, originalCount + numCurvesToGenerate);
 
             for (int i = 0; i < numCurvesToGenerate; i++)
             {

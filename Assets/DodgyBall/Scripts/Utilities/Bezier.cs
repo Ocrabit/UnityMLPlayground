@@ -153,8 +153,8 @@ namespace DodgyBall.Scripts.Utilities
                 return left + right + delta / 15f; // Richardson Correction
             }
 
-            float leftInt = AdaptiveSimpson(startT, leftT, startD, leftD, middleD, left, tolerance * 0.5f, depth - 1, points);
-            float rightInt = AdaptiveSimpson(middleT, rightT, middleD, rightD, endD, right, tolerance * 0.5f, depth - 1, points);
+            float leftInt = AdaptiveSimpson(startT, middleT, startD, middleD, leftD, left, tolerance * 0.5f, depth - 1, points);
+            float rightInt = AdaptiveSimpson(middleT, endT, middleD, endD, rightD, right, tolerance * 0.5f, depth - 1, points);
 
             return leftInt + rightInt;
         }

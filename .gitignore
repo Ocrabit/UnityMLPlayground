@@ -102,3 +102,4 @@ InitTestScene*.unity*
 .DS_Store
 ml-agents/
 results/
+local/

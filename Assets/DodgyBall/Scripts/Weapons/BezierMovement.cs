@@ -1,22 +1,30 @@
 using System;
 using System.Collections;
 using DodgyBall.Scripts.Core;
+using DodgyBall.Scripts.Utilities;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 namespace DodgyBall.Scripts.Weapons
 {
     public class BezierMovement: MonoBehaviour, IWeapon
     {
-        [Header("Movement")]
-        public float AttackRange = 0.5f;
-        public float PlacementOffset = 0.2f;
-
+        [Header("Options")]
+        public float contactOffset = 0f;
+        public float maxAttackDistance = 10f;
+        
+        [Header("Debug")]
+        [Tooltip("If you provide a debugTarget object it will allow you to test movement via 'Spacebar'")]
         public GameObject debugTarget;
-
+        public float debugDuration = 1f;
+        public bool drawDebugCurve = true;
+        private float debugExpectedContactTime = 0f;
+        private float debugTimer = 0f;
+        
+        
         private Rigidbody _rb;
-        private GameObject[] debugPoints;
-
+        private BezierCurve curve;
+        private bool curveConsumed = true;
+        
         void Awake()
         {
             _rb = GetComponent<Rigidbody>();
@@ -29,114 +37,56 @@ namespace DodgyBall.Scripts.Weapons
 
             if (Input.GetKeyDown(KeyCode.Space)) // Perform test fly function
             {
-                StartCoroutine(Fly(1f, debugTarget.transform.localPosition));
+                debugExpectedContactTime = GetImpactTime(debugDuration, debugTarget.transform.localPosition);
+                debugTimer = 0f;
+
+                Attack(debugDuration, debugTarget.transform.localPosition);
             }
 
-            if (Input.GetKeyDown(KeyCode.B))
+            if (Input.GetKeyDown(KeyCode.B)) // Just visualize the curve without movement
             {
-                Debug.Log("Called Movement: PathThroughTarget");
-                StartCoroutine(PathThroughTarget(2f, debugTarget.transform.localPosition));
-            }
+                if (curveConsumed) SetNextCurve();
 
-            if (Input.GetKeyDown(KeyCode.R))
-            {
-                Debug.Log("Called Movement: PathThroughTargetWithLibrary");
-                StartCoroutine(PathThroughTargetWithLibrary(2f, debugTarget.transform.localPosition));
+                var (scaledPoints, scaledTangents, scaledArcLengths) = BezierCurveLibrary.Instance.FitCurve(
+                    curve,
+                    transform.localPosition,
+                    debugTarget.transform.localPosition);
+
+                DebugDrawCurve(curve, scaledPoints, transform.localPosition, debugTarget.transform.localPosition, 10f);
+
+                curveConsumed = true; // Mark as consumed after visualizing
             }
         }
 
-        // ReSharper disable Unity.PerformanceAnalysis
-        private IEnumerator PathThroughTarget5(float duration, Vector3 targetPosition)
+        private void FixedUpdate()
         {
-            Vector3 r1 = Random.insideUnitSphere; Vector3 r2 = Random.insideUnitSphere;
-            r1.z = MathF.Abs(r1.z); r2.z = -MathF.Abs(r2.z);
-
-            Vector3 direction = transform.localPosition - targetPosition;
-            float placementDistance = direction.magnitude - PlacementOffset;
-            Vector3 p0 = transform.localPosition;
-            Vector3 p4 = targetPosition - direction;
-            Vector3 p1 = p0 + r1 * placementDistance;
-            Vector3 p3 = p4 + r2 * placementDistance;
-            Vector3 p2 = Utilities.Bezier.SolveP2(p0, p1, p3, p4, targetPosition);
-
-            // Create debug visualizations for control points
-            if (debugPoints != null)
-            {
-                for (int i = 0; i < debugPoints.Length; i++)
-                {
-                    if (debugPoints[i]) Destroy(debugPoints[i]);
-                }
-            }
-
-            debugPoints = new GameObject[5];
-            for (int i = 0; i < 5; i++)
-            {
-                debugPoints[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                debugPoints[i].transform.localScale = Vector3.one * 0.1f;
-                debugPoints[i].name = $"DebugPoint_P{i}";
-            }
-
-            debugPoints[0].transform.position = p0;
-            debugPoints[1].transform.position = p1;
-            debugPoints[2].transform.position = p2;
-            debugPoints[3].transform.position = p3;
-            debugPoints[4].transform.position = p4;
-
-            // Follow single quartic Bezier curve through target
-            yield return HandleBezierMovement(duration, p0, p1, p2, p3, p4);
+            if (debugTarget) debugTimer += Time.fixedDeltaTime;
         }
-        
-        // ReSharper disable Unity.PerformanceAnalysis
-        private IEnumerator PathThroughTarget(float duration, Vector3 targetPosition)
+
+        private void OnTriggerEnter(Collider other)
         {
-            Vector3 r1 = Random.insideUnitSphere; Vector3 r2 = Random.insideUnitSphere;
-            r1.z = MathF.Abs(r1.z); r2.z = -MathF.Abs(r2.z);
+            if (!debugTarget || other.gameObject != debugTarget) return;
             
-            Vector3 direction = transform.localPosition - targetPosition;
-            float placementDistance = direction.magnitude - PlacementOffset;
-            Vector3 p0 = transform.localPosition;
-            Vector3 p4 = targetPosition - direction;
-            Vector3 p1 = p0 + r1 * placementDistance;
-            Vector3 p3 = p4 + r2 * placementDistance;
-
-            // Create debug visualizations for control points
-                if (debugPoints != null)
-                {
-                    for (int i = 0; i < debugPoints.Length; i++)
-                    {
-                        if (debugPoints[i]) Destroy(debugPoints[i]);
-                    }
-                }
-
-                debugPoints = new GameObject[5];
-                for (int i = 0; i < 5; i++)
-                {
-                    debugPoints[i] = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    debugPoints[i].transform.localScale = Vector3.one * 0.1f;
-                    debugPoints[i].name = $"DebugPoint_P{i}";
-                }
-
-                debugPoints[0].transform.position = p0;
-                debugPoints[1].transform.position = p1;
-                debugPoints[2].transform.position = targetPosition;
-                debugPoints[3].transform.position = p3;
-                debugPoints[4].transform.position = p4;
-
-            // Follow two quadratic Bézier curves in sequence
-            yield return HandleBezierMovement(duration / 2f, p0, p1, targetPosition);
-            yield return HandleBezierMovement(duration / 2f, targetPosition, p3, p4);
+            float error = Mathf.Abs(debugTimer - debugExpectedContactTime);
+            Debug.Log($"Contact at {debugTimer:F3}s | Expected: {debugExpectedContactTime:F3}s | Error: {error:F3}s");
+            
+            if (error < 0.1f) {
+                Debug.Log("✓ Contact time is accurate!");
+            } else {
+                Debug.LogWarning($"✗ Contact time off by {error:F3}s");
+            }
         }
 
-        private IEnumerator HandleBezierMovement(float duration, params Vector3[] points)
+        private IEnumerator HandleBezierMovement(float duration, params Vector3[] controlPoints)
         {
             int numSamples = 50;
-            Vector3[] sampledPoints = Utilities.Bezier.SamplePoints(numSamples, points);
-            Vector3[] sampledTangents = Utilities.Bezier.SampleTangents(numSamples, points);
+            Vector3[] sampledPoints = Utilities.Bezier.SamplePoints(numSamples, controlPoints);
+            Vector3[] sampledTangents = Utilities.Bezier.SampleTangents(numSamples, controlPoints);
 
             yield return HandleBezierMovementWithSamples(duration, sampledPoints, sampledTangents);
         }
 
-        private IEnumerator HandleBezierMovementWithSamples(float duration, Vector3[] sampledPoints, Vector3[] sampledTangents)
+        private IEnumerator HandleBezierMovementWithSamples(float duration, Vector3[] sampledPoints, Vector3[] sampledTangents, Action callback=null)
         {
             float elapsed = 0f;
             while (elapsed < duration)
@@ -150,77 +100,145 @@ namespace DodgyBall.Scripts.Weapons
                 transform.localPosition = Vector3.Lerp(sampledPoints[i0], sampledPoints[i1], t);
 
                 Quaternion targetRotation = Quaternion.FromToRotation(Vector3.up, sampledTangents[i0]);
+                transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRotation, 0.5f);
+
+                elapsed += Time.fixedDeltaTime;
+                yield return new WaitForFixedUpdate();
+            }
+
+            _rb.angularVelocity = Vector3.zero;
+            curveConsumed = true;
+            callback?.Invoke();
+        }
+
+        private IEnumerator HandleBezierMovementWithCurve(float duration, BezierCurve curveData, Vector3 start, Vector3 target, Action callback=null)
+        {
+            Debug.Log("Called BezierMovement with curve");
+            var (scaledPoints, scaledTangents, cumulativeArcLengths) = BezierCurveLibrary.Instance.FitCurve(curveData, start, target);
+
+            float totalLength = cumulativeArcLengths[^1];
+            Debug.Log($"Original arc length: {curveData.cumulativeArcLengths[^1]:F3}, Scaled arc length: {totalLength:F3}");
+            DebugDrawCurve(curveData, scaledPoints, start, target, duration);
+
+            // Allows the attack to stop early if too far so it doesn't get exponentially farther away haha
+            float overshoot = Vector3.Distance(scaledPoints[^1], target) - maxAttackDistance;
+            bool stopShort = overshoot > 0f;
+            float maxArcLength = stopShort ? totalLength - overshoot : totalLength;
+
+            // Move through curve
+            int segment = 0;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                float progress = elapsed / duration;
+                float targetArcLength = progress * totalLength;
+
+                while (segment < cumulativeArcLengths.Length - 1 && targetArcLength > cumulativeArcLengths[segment + 1])
+                {
+                    segment++;
+                }
+
+                if (stopShort && targetArcLength >= maxArcLength)
+                {
+                    _rb.angularVelocity = Vector3.zero;
+                    curveConsumed = true;
+                    callback?.Invoke();
+                    yield break;
+                }
+
+                // Interpolate within the segment
+                int nextSegment = Mathf.Min(segment + 1, scaledPoints.Length - 1);
+                float segmentStart = cumulativeArcLengths[segment];
+                float segmentEnd = cumulativeArcLengths[nextSegment];
+                float segmentLength = segmentEnd - segmentStart;
+                float t = segmentLength > 0 ? (targetArcLength - segmentStart) / segmentLength : 0f;
+
+                transform.localPosition = Vector3.Lerp(scaledPoints[segment], scaledPoints[nextSegment], t);
+
+                Quaternion targetRotation = Quaternion.FromToRotation(Vector3.up, scaledTangents[segment]);
                 transform.localRotation = Quaternion.Slerp(transform.localRotation, targetRotation, 0.35f);
 
                 elapsed += Time.fixedDeltaTime;
                 yield return new WaitForFixedUpdate();
             }
 
+            transform.localPosition = scaledPoints[^1];
             _rb.angularVelocity = Vector3.zero;
-        }
-
-        private IEnumerator PathThroughTargetWithLibrary(float duration, Vector3 targetPosition)
-        {
-            var (sampledPoints, sampledTangents) = Utilities.BezierCurveLibrary.Instance.GetRandomCurve(transform.localPosition, targetPosition);
-
-            yield return HandleBezierMovementWithSamples(duration, sampledPoints, sampledTangents);
-        }
-
-        private IEnumerator Fly(float duration, Vector3 targetPosition, Action callback=null)
-        {
-            // Calculate direction to target
-            Vector3 direction = (targetPosition - transform.localPosition).normalized;
-
-            // Orient the tip (Vector3.up) to point at target
-            Quaternion startRot = _rb.rotation;
-            Quaternion targetRot = Quaternion.FromToRotation(transform.up, direction) * startRot;
-            
-            float distance = Vector3.Distance(transform.localPosition, targetPosition);
-            
-            Vector3 linearVelocity = direction * (distance / duration);
-
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                // Smoothly rotate to face target
-                float t = Mathf.Clamp01(elapsed / (duration * 0.3f)); // Orient in first 30% of duration
-                Quaternion currentRot = Quaternion.Slerp(startRot, targetRot, t);
-
-                // Calculate angular velocity
-                Quaternion delta = currentRot * Quaternion.Inverse(_rb.rotation);
-                delta.ToAngleAxis(out float angleDeg, out Vector3 axis);
-                if (angleDeg > 180f) angleDeg -= 360f;
-                if (Mathf.Abs(angleDeg) < 0.001f) { _rb.angularVelocity = Vector3.zero; }
-                else
-                {
-                    float angularSpeed = (angleDeg * Mathf.Deg2Rad) / Time.fixedDeltaTime;
-                    angularSpeed = Mathf.Clamp(angularSpeed, -500f, 500f);
-                    _rb.angularVelocity = axis.normalized * angularSpeed;
-                }
-
-                // Set linear velocity to fly at target
-                _rb.linearVelocity = linearVelocity;
-
-                elapsed += Time.fixedDeltaTime;
-                yield return new WaitForFixedUpdate();
-            }
-
-            // Stop
-            _rb.linearVelocity = Vector3.zero;
-            _rb.angularVelocity = Vector3.zero;
-
+            curveConsumed = true;
             callback?.Invoke();
         }
 
-        public Coroutine Attack(float duration, Vector3 targetPosition, Action callback)
+        private void SetNextCurve()
         {
-            return StartCoroutine(Fly(duration, targetPosition, callback));
+            curve = BezierCurveLibrary.Instance.GetRandomCurve();
+            curveConsumed = false;
         }
 
-        public float GetImpactTime(float duration)
+        private void DebugDrawCurve(BezierCurve curveData, Vector3[] scaledPoints, Vector3 start, Vector3 target, float duration)
         {
-            // Contact happens around midpoint since it's flying straight through
-            return duration * 0.5f;
+            if (!drawDebugCurve) return;
+
+            // Draw the curve path
+            for (int i = 0; i < scaledPoints.Length - 1; i++)
+            {
+                Debug.DrawLine(scaledPoints[i], scaledPoints[i + 1], Color.cyan, duration);
+            }
+
+            // Calculate scaled contact point
+            Vector3 curveDirection = curveData.contactPoint.normalized;
+            float actualDistance = Vector3.Distance(start, target);
+            float scale = actualDistance / curveData.distanceToContact;
+            Vector3 targetDirection = (target - start).normalized;
+            Quaternion rotation = Quaternion.FromToRotation(curveDirection, targetDirection);
+            Vector3 scaledContactPoint = start + rotation * (curveData.contactPoint * scale);
+
+            // Draw markers
+            float markerSize = 0.2f;
+
+            // Start point (green)
+            Debug.DrawLine(start + Vector3.up * markerSize, start - Vector3.up * markerSize, Color.green, duration);
+            Debug.DrawLine(start + Vector3.right * markerSize, start - Vector3.right * markerSize, Color.green, duration);
+            Debug.DrawLine(start + Vector3.forward * markerSize, start - Vector3.forward * markerSize, Color.green, duration);
+
+            // Contact point (yellow)
+            Debug.DrawLine(scaledContactPoint + Vector3.up * markerSize, scaledContactPoint - Vector3.up * markerSize, Color.yellow, duration);
+            Debug.DrawLine(scaledContactPoint + Vector3.right * markerSize, scaledContactPoint - Vector3.right * markerSize, Color.yellow, duration);
+            Debug.DrawLine(scaledContactPoint + Vector3.forward * markerSize, scaledContactPoint - Vector3.forward * markerSize, Color.yellow, duration);
+
+            // Target point (red)
+            Debug.DrawLine(target + Vector3.up * markerSize, target - Vector3.up * markerSize, Color.red, duration);
+            Debug.DrawLine(target + Vector3.right * markerSize, target - Vector3.right * markerSize, Color.red, duration);
+            Debug.DrawLine(target + Vector3.forward * markerSize, target - Vector3.forward * markerSize, Color.red, duration);
+
+            Debug.Log($"Debug: Start={start}, ScaledContact={scaledContactPoint}, Target={target}");
+            Debug.Log($"Debug: Original contact={curveData.contactPoint}, Scale={scale}, ContactTimeRatio={curveData.contactTimeRatio:F3}");
+        }
+
+        // ReSharper disable Unity.PerformanceAnalysis
+        public Coroutine Attack(float duration, Vector3 targetPosition, Action callback=null)
+        {
+            if (curveConsumed) SetNextCurve();
+
+            BezierCurve attackCurve = curve;
+            curveConsumed = true;
+
+            return StartCoroutine(HandleBezierMovementWithCurve(duration, attackCurve, transform.localPosition, targetPosition, callback));
+        }
+
+        public float GetImpactTime(float duration, Vector3 targetPosition)
+        {
+            if (curveConsumed) SetNextCurve();
+
+            if (Mathf.Abs(contactOffset) > 0.001f)
+            {
+                float actualDistance = Vector3.Distance(transform.localPosition, targetPosition);
+                var scale = actualDistance / curve.distanceToContact;
+
+                float unscaledOffset = contactOffset / scale;
+
+                return duration * ((curve.arcLengthToContact - unscaledOffset) / curve.totalArcLength);
+            }
+            return duration * curve.contactTimeRatio;
         }
     }
 }

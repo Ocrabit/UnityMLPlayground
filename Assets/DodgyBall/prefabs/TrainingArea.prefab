@@ -643,7 +643,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DodgyBall.Scripts.Orchestrator
   maxConcurrentSwings: 3
   chanceForConcurrency: 0.25
-  chanceForPrediction: 0.4
+  chanceForPrediction: 1
   concurrencyCheckInterval: 0.2
   intervalMin: 0.25
   intervalMax: 1.5
@@ -675,8 +675,9 @@ MonoBehaviour:
     m_RotationOrder: 4
   shiftStepPercent: 0.1
   weaponPrefabs:
-  - {fileID: 4134139538063528224, guid: b7756be2617834058a638b0f562cdc1d, type: 3}
-  useRandomWeaponCount: 0
+  - {fileID: 134079704059874635, guid: caed341b426074e74a00fd821fcb6b62, type: 3}
+  - {fileID: 7000097186635595902, guid: 78f9f6cf86bd040d4bc62c1b9ae9a1af, type: 3}
+  useRandomWeaponCount: 1
   minWeaponCount: 2
   maxWeaponCount: 3
   target: {fileID: 7054570584150924382}
@@ -938,7 +939,7 @@ SphereCollider:
     m_Bits: 0
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
-  m_ProvidesContacts: 0
+  m_ProvidesContacts: 1
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.5

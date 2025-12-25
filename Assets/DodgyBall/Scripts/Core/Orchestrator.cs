@@ -132,7 +132,7 @@ namespace DodgyBall.Scripts.Core
             var targetPosition = target.localPosition;
             if (_targetRb && Random.value < chanceForPrediction)
             {
-                float impactTime = handle.Weapon.GetImpactTime(duration);
+                float impactTime = handle.Weapon.GetImpactTime(duration, targetPosition);
                 Vector3 predictedOffset = transform.InverseTransformDirection(_targetRb.linearVelocity) * impactTime;
                 Vector3 predictedPosition = targetPosition + predictedOffset;
                 targetPosition = predictedPosition;
