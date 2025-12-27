@@ -6,7 +6,7 @@ using Unity.MLAgents;
 using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
 
-namespace DodgyBall.Scripts
+namespace DodgyBall.Scripts.Agents
 {
     public class DodgerAgent : Agent
     {

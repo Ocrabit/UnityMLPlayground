@@ -804,7 +804,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8066670795870745097}
   m_Layer: 0
-  m_Name: TrainingArea
+  m_Name: DodgyBallArea
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
