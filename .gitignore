@@ -109,3 +109,6 @@ ml-agents/
 results/
 local/
 builds/
+
+# Uv ignore now that default exists
+uv.lock
