@@ -60,7 +60,7 @@ MonoBehaviour:
   detectionLayers:
     serializedVersion: 2
     m_Bits: 65
-  referenceTransform: {fileID: 6188825282854315577}
+  referenceTransform: {fileID: 3572073306135120074}
 --- !u!114 &8083775558872480280
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -104,6 +104,14 @@ MonoBehaviour:
   hasUpgradedFromAgentParameters: 1
   MaxStep: 1000
   multicopter: {fileID: 2325133237296974822}
+  objective: 0
+  resetDistance: 50
+  objectiveRewardWeight: 0.3
+  optimalStepDistance: 1
+  successHoldSteps: 500
+  successExploreDistance: 100
+  holdThreshold: 1
+  successBonus: 50
 --- !u!114 &2676004649693130315
 MonoBehaviour:
   m_ObjectHideFlags: 0

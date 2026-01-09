@@ -59,15 +59,17 @@ namespace DodgingAgent.Scripts.Sensors
                 bool hit = Physics.Raycast(origin, worldDirection, out RaycastHit hitInfo, maxDistance, detectionLayers);
                 float distance; Vector3 endPoint;
                 if (hit) {
-                    Gizmos.color = Color.green;
                     distance = hitInfo.distance;
                     endPoint = hitInfo.point;
                 } else {
-                    Gizmos.color = Color.magenta;
                     distance = maxDistance;
                     endPoint = origin + worldDirection * maxDistance;
                 }
-
+                
+                Color color = hit ? Color.green : Color.magenta;
+                color.a = 0.3f;
+                Gizmos.color = color;
+                
                 Gizmos.DrawLine(origin, endPoint);
 
 #if UNITY_EDITOR

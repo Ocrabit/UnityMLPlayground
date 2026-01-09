@@ -211,7 +211,7 @@ MeshCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 5
-  m_Convex: 1
+  m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -8653240853820919204, guid: a8df7538ff12f4259b68dbba53c60ce2, type: 3}
 --- !u!4 &3124844653647193331 stripped
@@ -289,11 +289,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6329606410971591188, guid: ccb30af37f1334b7e9dbe4d29d84ddfa, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6329606410971591188, guid: ccb30af37f1334b7e9dbe4d29d84ddfa, type: 3}
+      propertyPath: drawGizmos
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6329606410971591188, guid: ccb30af37f1334b7e9dbe4d29d84ddfa, type: 3}
       propertyPath: maxDistance
-      value: 5
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 7752226592088031735, guid: ccb30af37f1334b7e9dbe4d29d84ddfa, type: 3}
+      propertyPath: objective
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7752226592088031735, guid: ccb30af37f1334b7e9dbe4d29d84ddfa, type: 3}
       propertyPath: resetDistance
