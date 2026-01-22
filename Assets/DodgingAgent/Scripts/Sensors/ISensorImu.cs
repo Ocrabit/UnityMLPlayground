@@ -21,7 +21,7 @@ namespace DodgingAgent.Scripts.Sensors
             this.vectorSize = vectorSize;
         }
 
-        public abstract int Write(ObservationWriter writer);
+        public abstract int Write(ObservationWriter writer, ref int offset);
         public abstract void Reset();
         public virtual void FixedUpdate() { }
     }
@@ -48,7 +48,7 @@ namespace DodgingAgent.Scripts.Sensors
             gravityEstimate = Vector3.down;
         }
 
-        public override int Write(ObservationWriter writer)
+        public override int Write(ObservationWriter writer, ref int offset)
         {
             Vector3 localAcceleration = Imu.transform.InverseTransformVector(currentAcceleration);
 
@@ -59,12 +59,14 @@ namespace DodgingAgent.Scripts.Sensors
                 localAcceleration += bias + GaussianRandom.SampleVector(noiseDensity / sqrtDt);
             }
 
-            writer.Add(localAcceleration);
+            writer.Add(localAcceleration, offset);
+            offset += 3;
 
             if (includeGravity)
             {
                 Vector3 gravityDirection = Imu.transform.InverseTransformDirection(gravityEstimate.normalized);
-                writer.Add(gravityDirection);
+                writer.Add(gravityDirection, offset);
+                offset += 3;
                 return 6;
             }
 
@@ -91,6 +93,7 @@ namespace DodgingAgent.Scripts.Sensors
 
     /// <summary>
     /// Barometer sensor measuring altitude (y position)
+    /// Note: This is essentially height from start since it uses world Y position
     /// </summary>
     public class Barometer : ImuBaseSensor
     {
@@ -99,7 +102,7 @@ namespace DodgingAgent.Scripts.Sensors
         public Barometer(ISensorImu imu, float noiseDensity = 0.5f, float randomWalk = 0.05f)
             : base(imu, noiseDensity, randomWalk, 1) {}
 
-        public override int Write(ObservationWriter writer)
+        public override int Write(ObservationWriter writer, ref int offset)
         {
             float altitude = Imu.transform.position.y;
 
@@ -109,7 +112,8 @@ namespace DodgingAgent.Scripts.Sensors
                 bias += GaussianRandom.Sample(randomWalk * sqrtDt);
                 altitude += bias + GaussianRandom.Sample(noiseDensity / sqrtDt);
             }
-            writer.AddList(new[] { altitude });
+            writer[offset] = altitude;
+            offset += 1;
 
             return 1;
         }
@@ -130,7 +134,7 @@ namespace DodgingAgent.Scripts.Sensors
         public Compass(ISensorImu imu, float noiseDensity = 2f, float randomWalk = 0.1f)
             : base(imu, noiseDensity, randomWalk, 1) {}
 
-        public override int Write(ObservationWriter writer)
+        public override int Write(ObservationWriter writer, ref int offset)
         {
             float heading = Imu.transform.eulerAngles.y;
 
@@ -145,7 +149,8 @@ namespace DodgingAgent.Scripts.Sensors
             if (heading > 180f) heading -= 360f;
 
             // Normalize to [-1, 1]
-            writer.AddList(new[] { heading / 180f });
+            writer[offset] = heading / 180f;
+            offset += 1;
 
             return 1;
         }
@@ -166,7 +171,7 @@ namespace DodgingAgent.Scripts.Sensors
         public Gyroscope(ISensorImu imu, float noiseDensity = 0.01f, float randomWalk = 0.001f)
             : base(imu, noiseDensity, randomWalk, 3) {}
 
-        public override int Write(ObservationWriter writer)
+        public override int Write(ObservationWriter writer, ref int offset)
         {
             Vector3 localAngularVelocity = Imu.transform.InverseTransformVector(Imu.rigidbody.angularVelocity);
 
@@ -177,7 +182,8 @@ namespace DodgingAgent.Scripts.Sensors
                 localAngularVelocity += bias + GaussianRandom.SampleVector(noiseDensity / sqrtDt);
             }
 
-            writer.Add(localAngularVelocity);
+            writer.Add(localAngularVelocity, offset);
+            offset += 3;
             return 3;
         }
 
@@ -214,7 +220,8 @@ namespace DodgingAgent.Scripts.Sensors
 
         public int Write(ObservationWriter writer)
         {
-            return sensors.Sum(s => s.Write(writer)); 
+            int offset = 0;
+            return sensors.Sum(s => s.Write(writer, ref offset));
         }
 
         public byte[] GetCompressedObservation()
