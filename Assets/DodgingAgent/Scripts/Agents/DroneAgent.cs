@@ -5,6 +5,7 @@ using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Sensors;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using DodgingAgent.Scripts.Core;
 
 namespace DodgingAgent.Scripts.Agents
 {
@@ -39,7 +40,9 @@ namespace DodgingAgent.Scripts.Agents
         [Tooltip("Bonus reward for completing goal (faster = better via less penalty time)")]
         [SerializeField] private float successBonus = 50f;
 
-        private Resetter resetter;
+        private DroneResetter resetter;
+        private RandomizePosition randomizePosition;
+        private Vector3 origin;
         private Vector3 initialPosition;
         private Vector3 lastPosition;
         private float goalProgress;
@@ -48,18 +51,19 @@ namespace DodgingAgent.Scripts.Agents
         public override void Initialize()
         {
             multicopter.Initialize();
-            resetter = new Resetter(transform);
+            resetter = new DroneResetter(multicopter.Frame.parent);
+            randomizePosition = GetComponent<RandomizePosition>();
+            origin = transform.InverseTransformPoint(randomizePosition ? randomizePosition.transform.position : multicopter.Frame.position);
+            Debug.Log($"[DroneAgent] Initialized with: Origin={origin}, RandomizePosition={randomizePosition != null}");
         }
 
         public override void OnEpisodeBegin()
         {
-            resetter.Reset();
-            initialPosition = multicopter.Frame.position;
-            lastPosition = multicopter.Frame.position;
+            resetter.Reset(randomizePosition ? randomizePosition.GetResetPosition() : null);
+            initialPosition = transform.InverseTransformPoint(multicopter.Frame.position);
+            lastPosition = initialPosition;
             goalProgress = 0f;
-
-            // Set success goal based on objective
-            successGoal = objective == TrainingObjective.HoldPosition ? successHoldSteps : successExploreDistance; // TODO: Change if I add more Objectives
+            successGoal = objective == TrainingObjective.HoldPosition ? successHoldSteps : successExploreDistance;
         }
 
         public override void CollectObservations(VectorSensor sensor)
@@ -86,10 +90,12 @@ namespace DodgingAgent.Scripts.Agents
             }
             multicopter.UpdateThrust(mappedThrust);
 
+            Vector3 localFramePosition = transform.InverseTransformPoint(multicopter.Frame.position);
+
             switch (objective)
             {
                 case TrainingObjective.HoldPosition: // Position holding reward (exponential decaying reward)
-                    float distanceFromInitial = Vector3.Distance(multicopter.Frame.position, initialPosition);
+                    float distanceFromInitial = Vector3.Distance(localFramePosition, initialPosition);
                     float positionReward = Mathf.Exp(-distanceFromInitial * 0.5f);
                     AddReward(positionReward * objectiveRewardWeight);
 
@@ -100,24 +106,24 @@ namespace DodgingAgent.Scripts.Agents
                         if (goalProgress >= successGoal)
                         {
                             AddReward(successBonus);
-                            // Debug.Log($"{gameObject.name} SUCCESS! Held position for {goalProgress} steps. Final reward: {GetCumulativeReward():F2}");
+                            Debug.Log($"{gameObject.name} SUCCESS! Held position for {goalProgress} steps. Final reward: {GetCumulativeReward():F2}");
                             EndEpisode();
                         }
                     } else { goalProgress = 0; } // Reset on drift
                     break;
 
                 case TrainingObjective.Explore: // distance traveled this step (exponential decaying reward)
-                    float distanceTraveled = Vector3.Distance(multicopter.Frame.position, lastPosition);
+                    float distanceTraveled = Vector3.Distance(localFramePosition, lastPosition);
                     float explorationReward = Mathf.Exp(-Mathf.Abs(distanceTraveled - optimalStepDistance) * 0.5f);
                     AddReward(explorationReward * objectiveRewardWeight);
-                    lastPosition = multicopter.Frame.position;
+                    lastPosition = localFramePosition;
 
                     // Calculate Goal Progress
                     goalProgress += distanceTraveled;
                     if (goalProgress >= successGoal)
                     {
                         AddReward(successBonus);
-                        // Debug.Log($"{gameObject.name} SUCCESS! Explored {goalProgress:F2}m in {StepCount} steps. Final reward: {GetCumulativeReward():F2}");
+                        Debug.Log($"{gameObject.name} SUCCESS! Explored {goalProgress:F2}m in {StepCount} steps. Final reward: {GetCumulativeReward():F2}");
                         EndEpisode();
                     }
                     break;
@@ -136,9 +142,10 @@ namespace DodgingAgent.Scripts.Agents
             if (velocityMag > 0.5f) { AddReward(-(velocityMag - 0.5f) * 0.1f); }
             AddReward(multicopter.Rigidbody.angularVelocity.magnitude * -0.05f);
             
-            // Check for distance (Could punish for going to far. Think about it.)
-            if ((initialPosition - multicopter.Frame.position).magnitude > resetDistance)
+            // Check for distance from origin
+            if (Vector3.Distance(localFramePosition, origin) > resetDistance)
             {
+                Debug.Log($"[DroneAgent] RESET: Flew too far from origin! Distance: {Vector3.Distance(localFramePosition, origin):F2}m (limit: {resetDistance}m)");
                 EndEpisode();
             }
         }
@@ -148,9 +155,7 @@ namespace DodgingAgent.Scripts.Agents
             // Debug.Log($"HandleCollision hit {collision.gameObject.name}: Tag={collision.gameObject.tag}");
             if (collision.gameObject.CompareTag("Wall"))
             {
-                var currentReward = GetCumulativeReward();
-                float crashPenalty = -(currentReward * 1.1f); // Lose all (reward + 10%)
-                AddReward(crashPenalty);
+                AddReward(-150f);
                 // Debug.Log($"{gameObject.name} crashed after {StepCount} steps with reward {currentReward:F2}, penalty: {crashPenalty:F2}, final: {GetCumulativeReward():F2}");
                 EndEpisode();
             }
